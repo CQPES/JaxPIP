@@ -1,7 +1,6 @@
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
 import jax
-from jax import jit
 from jax import numpy as jnp
 
 
@@ -26,21 +25,21 @@ class JaxPIP:
         xyz: jax.Array,
         with_grad: bool = False,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
-        """Calculate distance vector r from Cartesian coordinates xyz.
+        """Calculate distance vector `r` from Cartesian coordinates `xyz`.
 
         Args:
-            xyz (jax.Array): Cartesian coordinates xyz with shape (n, 3), where
-                n is the number of atoms, in Angstroms.
+            xyz (jax.Array): Cartesian coordinates `xyz` with shape (n, 3),
+                where `n` is the number of atoms, in Angstroms.
             with_grad (bool): Whether to calculate the gradients.
                 Defaults to false.
 
         Returns:
             r (jax.Array): Distance vector with length k = (n * (n - 1) / 2),
                 in Angstroms.
-            J_r_xyz (jax.Array): Jacobian matrix of distance vector r with
+            J_r_xyz (jax.Array): Jacobian matrix of distance vector `r` with
                 respect to Cartesian coordinates xyz with shape (k, n, 3), in
-                Angstroms. This variable will be calculate only when gradients
-                are required, i.e. with_grad = True.
+                Angstroms. Only be calculated when gradients are required,
+                i.e. with_grad = True.
         """
         num_atoms = len(xyz)
         pairwise_idx = jnp.asarray([
@@ -81,22 +80,51 @@ class JaxPIP:
 
         return r
 
-    def calc_morse_from_r(
+    def calc_m_from_r(
         self,
         r: jax.Array,
         with_grad: bool = False,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
-        """Calculate Morse-like vector m from distance vector r"""
-        pass
+        """Calculate Morse-like vector `m` from distance vector `r`.
 
-    def calc_polynomial_from_morse(
+        morse = exp(r / alpha)
+
+        Args:
+            r (jax.Array): Distance vector `r`.
+            with_grad (bool): Whether to calculate the gradients.
+                Defaults to false.
+
+        Returns:
+            m (jax.Array): Morse-like vector.
+            J_m_r (jax.Array): Jacobian matrix of Morse like vector `m` with
+                respect to distance vector `r`. Only be calculated when
+                gradients are required, i.e. with_grad = True.
+        """
+        m = jnp.exp(r / self.alpha)
+
+        if with_grad:
+            J_m_r = jnp.diag(-1.0 * m / self.alpha)
+            return m, J_m_r
+
+        return m
+
+    def calc_p_from_m(
         self,
         morse: jax.Array,
         with_grad: bool = False,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
         """Calculate Permutational Invariant Polynomials from
         Morse-like vector m.
+
+        p = hat{P}(m)
         """
+        pass
+
+    def __call__(
+        self,
+        xyz: jax.Array,
+        with_grad: bool = False
+    ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
         pass
 
 
@@ -121,3 +149,11 @@ if __name__ == "__main__":
 
     print(f"{r = }")
     print(f"{J_r_xyz = }")
+
+    m, J_m_r = ab4_pip.calc_m_from_r(
+        r=r,
+        with_grad=True,
+    )
+
+    print(f"{m = }")
+    print(f"{J_m_r = }")

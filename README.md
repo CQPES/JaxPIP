@@ -1,2 +1,3 @@
-# JaxPIP
-Jax Implementation of Permutational Invariant Polynominals (PIP)
+# Jax Polynomial Descriptor
+
+Jax Implementation of polynomial based descriptor.

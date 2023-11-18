@@ -2,7 +2,7 @@ from setuptools import find_packages, setup
 
 setup(
     author="mizu-bai",
-    description="Jax Permutational Invariant Polynomials",
+    description="Jax Implementation of Permutation Invariant Polynomial descriptor.",
     name="JaxPIP",
     packages=find_packages(
         include=[

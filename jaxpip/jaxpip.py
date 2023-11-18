@@ -15,7 +15,7 @@ class JaxPIPDescriptor:
 
     def __init__(
         self,
-        basis: Union[List[List[int]], str],
+        basis: List[List[int]],
         alpha: float = 1.0,
     ) -> None:
         self.basis = basis

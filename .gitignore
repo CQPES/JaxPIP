@@ -4,6 +4,9 @@
 # notebook
 *.ipynb
 
+# MSA-2.0
+MSA-2.0/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

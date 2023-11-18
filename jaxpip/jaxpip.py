@@ -1,24 +1,42 @@
-from typing import Any, List, Tuple, Union
+import json
+from typing import List, Tuple, Union
 
 import jax
 from jax import numpy as jnp
 
 
-class JaxPIP:
-    """Jax implementation of Permutational Invariant Polynomials (PIP).
+class JaxPIPDescriptor:
+    """Jax Permutational Invariant Polynomials (PIP) Descriptor.
 
     Attributes:
         basis (List[List[int]]): Permutational invariant basis.
-        alpha (float): Range parameter of Morse-like variable.
+        alpha (float): Range parameter of Morse-like variables.
     """
 
     def __init__(
         self,
-        basis: List[List[int]],
+        basis: Union[List[List[int]], str],
         alpha: float = 1.0,
     ) -> None:
         self.basis = basis
         self.alpha = alpha
+
+    @staticmethod
+    def from_json(
+        basis_json: str,
+        alpha: float = 1.0,
+    ) -> "JaxPIPDescriptor":
+        """Load PIP basis from json file.
+
+        Args:
+            basis_json (str): Json file containing PIP basis, generated using
+                `BAS2json.py`.
+            alpha (float): Range parameter of Morse-like variables.
+        """
+        with open(basis_json) as f:
+            basis = json.load(f)
+
+        return JaxPIPDescriptor(basis, alpha)
 
     def calc_r_from_xyz(
         self,
@@ -100,7 +118,7 @@ class JaxPIP:
                 respect to distance vector `r`. Only be calculated when
                 gradients are required, i.e. with_grad = True.
         """
-        m = jnp.exp(r / self.alpha)
+        m = jnp.exp(-1.0 * r / self.alpha)
 
         if with_grad:
             J_m_r = jnp.diag(-1.0 * m / self.alpha)
@@ -137,7 +155,7 @@ if __name__ == "__main__":
         [-1.14601250, -0.54180340, -1.11155510],
     ])
 
-    ab4_pip = JaxPIP(
+    ab4_pip = JaxPIPDescriptor(
         basis=[[]],
         alpha=1.0,
     )

@@ -4,9 +4,11 @@ from typing import List, Tuple, Union
 import jax
 from jax import numpy as jnp
 
+from jaxpip.descriptor.abc import AbstractPolynomialDescriptor
 
-class JaxPIPDescriptor:
-    """Jax Permutational Invariant Polynomials (PIP) Descriptor.
+
+class PIPDescriptor(AbstractPolynomialDescriptor):
+    """Permutation invariant polynomial descriptor.
 
     Attributes:
         basis (List[List[int]]): Permutational invariant basis.
@@ -25,7 +27,7 @@ class JaxPIPDescriptor:
     def from_json(
         basis_json: str,
         alpha: float = 1.0,
-    ) -> "JaxPIPDescriptor":
+    ) -> "PIPDescriptor":
         """Load PIP basis from json file.
 
         Args:
@@ -36,7 +38,7 @@ class JaxPIPDescriptor:
         with open(basis_json) as f:
             basis = json.load(f)
 
-        return JaxPIPDescriptor(basis, alpha)
+        return PIPDescriptor(basis, alpha)
 
     def calc_r_from_xyz(
         self,
@@ -155,7 +157,7 @@ if __name__ == "__main__":
         [-1.14601250, -0.54180340, -1.11155510],
     ])
 
-    ab4_pip = JaxPIPDescriptor(
+    ab4_pip = PIPDescriptor(
         basis=[[]],
         alpha=1.0,
     )

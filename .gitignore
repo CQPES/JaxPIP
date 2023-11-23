@@ -4,6 +4,9 @@
 # notebook
 *.ipynb
 
+# experiment
+exp/
+
 # MSA-2.0
 MSA-2.0/
 

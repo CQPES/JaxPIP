@@ -3,7 +3,7 @@ import re
 import sys
 
 if len(sys.argv) != 2:
-    print("Usage: python3 BAS2json.py MOL_mol_degree.BAS")
+    print(f"Usage: python3 {__file__} MOL_mol_degree.BAS")
     exit(-1)
 
 inp = sys.argv[1]

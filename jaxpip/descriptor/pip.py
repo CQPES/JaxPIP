@@ -11,16 +11,16 @@ class PIPDescriptor(AbstractPolynomialDescriptor):
     """Permutation invariant polynomial descriptor.
 
     Attributes:
-        basis (List[List[int]]): Permutational invariant basis.
+        basis_list (List[jax.Array]): Permutational invariant basis.
         alpha (float): Range parameter of Morse-like variables.
     """
 
     def __init__(
         self,
-        basis: List[List[int]],
+        basis_list: List[jax.Array],
         alpha: float = 1.0,
     ) -> None:
-        self.basis = basis
+        self.basis_list = basis_list
         self.alpha = alpha
 
     @staticmethod
@@ -36,9 +36,12 @@ class PIPDescriptor(AbstractPolynomialDescriptor):
             alpha (float): Range parameter of Morse-like variables.
         """
         with open(basis_json) as f:
-            basis = json.load(f)
+            basis_list = json.load(f)
 
-        return PIPDescriptor(basis, alpha)
+        for (idx, basis) in enumerate(basis_list):
+            basis_list[idx] = jnp.asarray(basis, dtype=jnp.float32)
+
+        return PIPDescriptor(basis_list, alpha)
 
     def calc_r_from_xyz(
         self,
@@ -130,50 +133,102 @@ class PIPDescriptor(AbstractPolynomialDescriptor):
 
     def calc_p_from_m(
         self,
-        morse: jax.Array,
+        m: jax.Array,
         with_grad: bool = False,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
         """Calculate Permutational Invariant Polynomials from
         Morse-like vector m.
 
         p = hat{P}(m)
+
+        Args:
+            m (jax.Array): Morse vector `m`.
+            with_grad (bool): Whether to calculate the gradients.
+                Defaults to false.
+
+        Returns:
+            p (jax.Array): Permutation invariant polynomial.
+            J_p_m (jax.Array): Jacobian matrix of permutation invariant
+                polynomial `p` with respect to Morse-like vector `m`. Only be
+                calculated when gradients are required, i.e. with_grad = True.
         """
-        pass
+
+        @jax.jit
+        def _calc_p(
+            m: jax.Array,
+            basis: jax.Array,
+        ) -> jax.Array:
+            return (m**basis).prod(axis=1).sum(axis=0)
+
+        p = jnp.zeros(shape=(len(self.basis_list)))
+
+        if not with_grad:
+            for (idx, basis) in enumerate(self.basis_list):
+                p = p.at[idx].set(_calc_p(m, basis))
+
+            return p
+
+        # calculate Jacobian matrix J_p(m) if required
+        _calc_p_dm = jax.grad(_calc_p)
+        J_p_m = jnp.zeros(shape=(len(self.basis_list), len(m)))
+
+        for (idx, basis) in enumerate(self.basis_list):
+            p = p.at[idx].set(_calc_p(m, basis))
+            J_p_m = J_p_m.at[idx].set(_calc_p_dm(m, basis))
+
+        return p, J_p_m
 
     def __call__(
         self,
         xyz: jax.Array,
         with_grad: bool = False
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
-        pass
+        if not with_grad:
+            r = self.calc_r_from_xyz(xyz)
+            m = self.calc_m_from_r(r)
+            p = self.calc_p_from_m(m)
+
+            return p
+
+        # calculate Jacobian matrix J_p(xyz) if required
+        r, J_r_xyz = self.calc_r_from_xyz(xyz, with_grad=True)
+        m, J_m_r = self.calc_m_from_r(r, with_grad=True)
+        p, J_p_m = self.calc_p_from_m(m, with_grad=True)
+
+        J_p_r = jnp.einsum("ij,jk->ik", J_p_m, J_m_r)
+        J_p_xyz = jnp.einsum("ij,jkl->ikl", J_p_r, J_r_xyz)
+
+        return p, J_p_xyz
 
 
 if __name__ == "__main__":
-    xyz = jnp.asarray([
-        [-0.37080090, -0.13842560, -0.26234460],
-        [+0.52405100, -0.92893340, -0.16449230],
-        [-0.75608510, +0.09429450, +0.62230030],
-        [+0.06355260, +0.73483450, -0.67571110],
-        [-1.14601250, -0.54180340, -1.11155510],
+    water_xyz = jnp.asarray([
+        [+0.00000000, +0.78383672, +0.44340501],  # H
+        [+0.00000000, -0.78383672, +0.44340501],  # H
+        [+0.00000000, +0.00000000, -0.11085125],  # O
     ])
 
+    print(f"HHO xyz = {water_xyz}")
+
+    basis_list = [
+        [[0, 0, 0]],
+        [[0, 0, 1], [0, 1, 0]],  # r(HO) + r(HO)
+        [[1, 0, 0]],             # r(HH)
+        [[0, 1, 1]],             # r(HO) * r(HO)
+        [[1, 0, 1], [1, 1, 0]],  # r(HH) * r(HO) + r(HH) * r(HO)
+        [[0, 0, 2], [0, 2, 0]],  # r(HO)^2 + r(HO)^2
+        [[2, 0, 0]],             # r(HH)^2
+    ]
+
+    for (idx, basis) in enumerate(basis_list):
+        basis_list[idx] = jnp.asarray(basis, dtype=jnp.float32)
+
     ab4_pip = PIPDescriptor(
-        basis=[[]],
+        basis_list=basis_list,
         alpha=1.0,
     )
 
-    r, J_r_xyz = ab4_pip.calc_r_from_xyz(
-        xyz=xyz,
-        with_grad=True,
-    )
+    p, J_p_xyz = ab4_pip(water_xyz, with_grad=True)
 
-    print(f"{r = }")
-    print(f"{J_r_xyz = }")
-
-    m, J_m_r = ab4_pip.calc_m_from_r(
-        r=r,
-        with_grad=True,
-    )
-
-    print(f"{m = }")
-    print(f"{J_m_r = }")
+    print(f"p(xyz) = {p}")
+    print(f"Jp(xyz) = {J_p_xyz}")

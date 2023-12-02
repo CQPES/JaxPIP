@@ -1,4 +1,4 @@
-from .pip import PIPDescriptor
+from ._pip import PIPDescriptor
 
 __all__ = [
     "PIPDescriptor",

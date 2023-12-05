@@ -1,6 +1,7 @@
 # JaxPIP
 
-Jax Implementation of Permutation Invariant Polynomial (PIP) based descriptor.
+Differentiable Permutation Invariant Polynomial (PIP) descriptor implemented in
+Jax.
 
 ## Features
 

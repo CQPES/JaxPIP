@@ -10,7 +10,7 @@ def _calc_r_from_xyz(
 ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
     """Calculate distance vector `r` from Cartesian coordinates `xyz`.
 
-    Args:
+    Arguments:
         xyz (jax.Array): Cartesian coordinates `xyz` with shape (n, 3),
             where `n` is the number of atoms, in Angstroms.
         with_grad (bool): Whether to calculate the gradients.
@@ -71,9 +71,9 @@ def _calc_m_from_r(
 ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
     """Calculate Morse-like vector `m` from distance vector `r`.
 
-    morse = exp(r / alpha)
+    morse = exp(-r / alpha)
 
-    Args:
+    Arguments:
         r (jax.Array): Distance vector `r`.
         alpha (float): Range parameter of Morse-like variables.
         with_grad (bool): Whether to calculate the gradients.
@@ -96,17 +96,17 @@ def _calc_m_from_r(
 
 def _calc_p_from_m(
     m: jax.Array,
-    basis_list: List[jax.Array],
+    basis_set: List[jax.Array],
     with_grad: bool = False,
 ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
-    """Calculate Permutational Invariant Polynomials from
+    """Calculate permutation invariant polynomials from
     Morse-like vector m.
 
     p = hat{P}(m)
 
-    Args:
+    Arguments:
         m (jax.Array): Morse vector `m`.
-        basis_list (List[jax.Array]): Permutational invariant basis.
+        basis_set (List[jax.Array]): Permutation invariant basis.
         with_grad (bool): Whether to calculate the gradients.
             Defaults to false.
 
@@ -124,19 +124,19 @@ def _calc_p_from_m(
     ) -> jax.Array:
         return (m**basis).prod(axis=1).sum(axis=0)
 
-    p = jnp.zeros(shape=(len(basis_list)))
+    p = jnp.zeros(shape=(len(basis_set)))
 
     if not with_grad:
-        for (idx, basis) in enumerate(basis_list):
+        for (idx, basis) in enumerate(basis_set):
             p = p.at[idx].set(_calc_p(m, basis))
 
         return p
 
     # calculate Jacobian matrix J_p(m) if required
     _calc_p_dm = jax.grad(_calc_p)
-    J_p_m = jnp.zeros(shape=(len(basis_list), len(m)))
+    J_p_m = jnp.zeros(shape=(len(basis_set), len(m)))
 
-    for (idx, basis) in enumerate(basis_list):
+    for (idx, basis) in enumerate(basis_set):
         p = p.at[idx].set(_calc_p(m, basis))
         J_p_m = J_p_m.at[idx].set(_calc_p_dm(m, basis))
 

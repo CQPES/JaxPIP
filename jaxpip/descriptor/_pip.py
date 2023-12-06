@@ -82,6 +82,16 @@ class PIPDescriptor(AbstractDescriptor):
 
         return p, J_p_xyz
 
+    def __repr__(self) -> str:
+        """Return a string representation."""
+        len_morse = len(self.basis_set[0][0])
+        num_atoms = int((1 + (1 + 8 * len_morse)**0.5) / 2)
+        len_pip = len(self.basis_set)
+        return ">>> PIPDescriptor INFO\n" \
+            f">>> Number of atoms: {num_atoms}\n" \
+            f">>> Length of distance and Morse-like vectors: {len_morse}\n" \
+            f">>> Length of permutation invariant polynomial: {len_pip}"
+
 
 if __name__ == "__main__":
     water_xyz = jnp.asarray([

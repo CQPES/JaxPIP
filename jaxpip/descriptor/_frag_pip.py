@@ -17,6 +17,8 @@ class FragmentPIPDescriptor(AbstractDescriptor):
             basis for each fragment.
         alpha_list (List[float]): Range parameter of Morse-like variables
             for each fragment.
+        descriptor_list (List[PIPDescriptor]): LIst of permutation invariant
+            polynomial descriptors for each fragment.
     """
 
     def __init__(
@@ -28,6 +30,8 @@ class FragmentPIPDescriptor(AbstractDescriptor):
         self.frag = frag
         self.basis_set_list = basis_set_list
         self.alpha_list = alpha_list if alpha_list else [1.0] * len(frag)
+
+        # set up fragment descriptors
         self.descriptor_list = []
 
         for (basis_set, alpha) in zip(basis_set_list, alpha_list):
@@ -74,12 +78,12 @@ class FragmentPIPDescriptor(AbstractDescriptor):
                 Defaults to false.
 
         Returns:
-            p_list (jax.Array): Permutation invariant polynomial for each
+            p_list (List[jax.Array]): Permutation invariant polynomial for each
                 fragment.
-            J_p_xyz_list (jax.Array): Jacobian matrix of permutation invariant
-                polynomial `p` with respect to Cartesian coordinates `xyz` for
-                each fragement. Only be calculated when gradients are required,
-                i.e. with_grad = True.
+            J_p_xyz_list (List[jax.Array]): Jacobian matrix of permutation
+                invariant polynomial `p` with respect to Cartesian coordinates
+                `xyz` for each fragement. Only be calculated when gradients are
+                required, i.e. with_grad = True.
         """
 
         p_list = []

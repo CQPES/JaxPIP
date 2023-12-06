@@ -5,7 +5,7 @@ Jax.
 
 ## Features
 
-Supported descriptors:
+Avaliable descriptors:
 
 - Origin permutation invariant polynomial (PIP) [1,2]
 - Fragment permutation invariant polynomial (Frag-PIP) [3,4]

@@ -1,9 +1,6 @@
 # VSCode
 .vscode
 
-# notebook
-*.ipynb
-
 # experiment
 exp/
 

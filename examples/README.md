@@ -27,5 +27,6 @@ generated, then the `*.BAS` file will be converted to `json` format, which is
 required by `JaxPIP.PIPDescriptor`. The `BAS2json.py` is a small utility shipped
 with `JaxPIP`.
 
-Since you already have the basis, now you can go to the `demo.ipynb` and try to
-run it.
+Since you already have the basis, now you can go to the notebook
+[`demo.ipynb`](https://github.com/mizu-bai/JaxPIP/blob/main/examples/CH4/demo.ipynb)
+and try it out.

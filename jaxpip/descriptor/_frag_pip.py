@@ -4,8 +4,8 @@ from typing import List, Optional, Tuple, Union
 import jax
 from jax import numpy as jnp
 
-from jaxpip.descriptor import PIPDescriptor
-from jaxpip.descriptor._abc import AbstractDescriptor
+from ._abc import AbstractDescriptor
+from ._pip import PIPDescriptor
 
 
 class FragmentPIPDescriptor(AbstractDescriptor):
@@ -104,3 +104,18 @@ class FragmentPIPDescriptor(AbstractDescriptor):
             J_p_xyz_list.append(J_p_xyz)
 
         return p_list, J_p_xyz_list
+
+    def __repr__(self) -> str:
+        """Return a string representation."""
+        info = []
+        num_frags = len(self.frag)
+
+        info.append(">>> FragmentPIPDescriptor INFO")
+        info.append(f">>> Number of fragments: {num_frags}")
+
+        for (idx, descriptor) in enumerate(self.descriptor_list):
+            info.append(">>>")
+            info.append(f">>> Fragment {idx + 1}")
+            info.append(repr(descriptor))
+
+        return "\n".join(info)

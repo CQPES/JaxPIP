@@ -2,6 +2,7 @@ import json
 from typing import List, Tuple, Union
 
 import jax
+import numpy as np
 from jax import numpy as jnp
 
 from jaxpip.descriptor._abc import AbstractDescriptor
@@ -13,16 +14,21 @@ class PIPDescriptor(AbstractDescriptor):
     """Permutation invariant polynomial descriptor.
 
     Attributes:
-        basis_set (List[jax.Array]): Permutation invariant basis set.
+        basis_set (Union[List[jax.Array], List[np.array], List[List[float]]]):
+            Permutation invariant basis set.
         alpha (float): Range parameter of Morse-like variables.
     """
 
     def __init__(
         self,
-        basis_set: List[jax.Array],
+        basis_set: Union[List[jax.Array], List[np.array], List[List[float]]],
         alpha: float = 1.0,
     ) -> None:
-        self.basis_set = basis_set
+        if all([isinstance(basis, jax.Array) for basis in basis_set]):
+            self.basis_set = basis_set
+        else:
+            self.basis_set = [jnp.array(basis, dtype=jnp.float32)
+                              for basis in basis_set]
         self.alpha = alpha
 
     @staticmethod
@@ -39,9 +45,6 @@ class PIPDescriptor(AbstractDescriptor):
         """
         with open(basis_json) as f:
             basis_set = json.load(f)
-
-        basis_set = [jnp.array(basis, dtype=jnp.float32)
-                     for basis in basis_set]
 
         return PIPDescriptor(basis_set, alpha)
 
@@ -111,9 +114,6 @@ if __name__ == "__main__":
         [[0, 0, 2], [0, 2, 0]],  # r(HO)^2 + r(HO)^2
         [[2, 0, 0]],             # r(HH)^2
     ]
-
-    for (idx, basis) in enumerate(basis_set):
-        basis_set[idx] = jnp.asarray(basis, dtype=jnp.float32)
 
     ab4_pip = PIPDescriptor(
         basis_set=basis_set,

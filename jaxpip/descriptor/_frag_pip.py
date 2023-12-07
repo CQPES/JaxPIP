@@ -2,10 +2,9 @@ import json
 from typing import List, Optional, Tuple, Union
 
 import jax
-from jax import numpy as jnp
 
-from ._abc import AbstractDescriptor
-from ._pip import PIPDescriptor
+from jaxpip.descriptor._abc import AbstractDescriptor
+from jaxpip.descriptor._pip import PIPDescriptor
 
 
 class FragmentPIPDescriptor(AbstractDescriptor):
@@ -41,14 +40,14 @@ class FragmentPIPDescriptor(AbstractDescriptor):
     @staticmethod
     def from_json_list(
         frag: List[List[int]],
-        basis_json_list: List[List[jax.Array]],
+        basis_json_list: List[str],
         alpha_list: List[float],
     ) -> "FragmentPIPDescriptor":
         """Load PIP basis from a list of json files.
 
         Arguments:
             frag (List[List[int]]): Indices of atoms in each fragment.
-            basis_set_list (List[List[jax.Array]]): A list of permutation
+            basis_set_list (List[str]): A list of permutation
                 invariant basis json files.
             alpha_list (List[float]): Range parameter of Morse-like variables
                 for each fragment.
@@ -58,8 +57,6 @@ class FragmentPIPDescriptor(AbstractDescriptor):
             with open(basis_json) as f:
                 basis_set = json.load(f)
 
-            basis_set = [jnp.array(basis, dtype=jnp.float32)
-                         for basis in basis_set]
             basis_set_list.append(basis_set)
 
         return FragmentPIPDescriptor(frag, basis_set_list, alpha_list)

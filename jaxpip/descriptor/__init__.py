@@ -1,4 +1,4 @@
-# autopop8: off
+# autopep8: off
 
 from ._pip import PIPDescriptor
 from ._frag_pip import FragmentPIPDescriptor

@@ -3,6 +3,8 @@
 Differentiable Permutation Invariant Polynomial (PIP) descriptor implemented in
 Jax.
 
+Author: mizu-bai
+
 ## Features
 
 Avaliable descriptors:

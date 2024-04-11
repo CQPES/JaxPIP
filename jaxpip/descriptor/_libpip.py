@@ -25,15 +25,14 @@ def _calc_r_from_xyz(
             i.e. with_grad = True.
     """
     num_atoms = len(xyz)
-    pairwise_idx = jnp.asarray([
+    pairwise_idx = jnp.array([
         [i, j] for i in range(num_atoms)
         for j in range(i + 1, len(xyz))
     ])
-    pairwise_xyz = jnp.asarray([
+    pairwise_xyz = jnp.array([
         [xyz[i], xyz[j]] for (i, j) in pairwise_idx
     ])
 
-    @jax.jit
     def _calc_pairwise_r(atom_1, atom_2):
         return jnp.linalg.norm(atom_1 - atom_2)
 
@@ -45,9 +44,8 @@ def _calc_r_from_xyz(
 
     # calculate Jacobian matrix J_r(xyz) if required
     if with_grad:
-        _calc_pairwise_dr_dxyz = jax.grad(
-            _calc_pairwise_r,
-        )
+        _calc_pairwise_dr_dxyz = jax.grad(_calc_pairwise_r)
+
         dr_dxyz = jax.vmap(_calc_pairwise_dr_dxyz)(
             pairwise_xyz[:, 0, :],
             pairwise_xyz[:, 1, :],
@@ -117,7 +115,6 @@ def _calc_p_from_m(
             calculated when gradients are required, i.e. with_grad = True.
     """
 
-    @jax.jit
     def _calc_p(
         m: jax.Array,
         basis: jax.Array,
@@ -133,11 +130,11 @@ def _calc_p_from_m(
         return p
 
     # calculate Jacobian matrix J_p(m) if required
-    _calc_p_dm = jax.grad(_calc_p)
+    _calc_dp_dm = jax.grad(_calc_p)
     J_p_m = jnp.zeros(shape=(len(basis_set), len(m)))
 
     for (idx, basis) in enumerate(basis_set):
         p = p.at[idx].set(_calc_p(m, basis))
-        J_p_m = J_p_m.at[idx].set(_calc_p_dm(m, basis))
+        J_p_m = J_p_m.at[idx].set(_calc_dp_dm(m, basis))
 
     return p, J_p_m

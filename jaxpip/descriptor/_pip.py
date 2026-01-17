@@ -1,111 +1,124 @@
 import json
-from typing import List, Tuple, Union
+from typing import Any, List, Tuple, Union
 
+import gzip
 import jax
-import numpy as np
 from jax import numpy as jnp
-
-from jaxpip.descriptor._abc import AbstractDescriptor
-from jaxpip.descriptor._libpip import (_calc_m_from_r, _calc_p_from_m,
-                                       _calc_r_from_xyz)
+from jaxpip.descriptor import AbstractDescriptor
 
 
 class PIPDescriptor(AbstractDescriptor):
-    """Permutation invariant polynomial descriptor.
-
-    Attributes:
-        basis_set (Union[List[jax.Array], List[np.array], List[List[float]]]):
-            Permutation invariant basis set.
-        alpha (float): Range parameter of Morse-like variables.
-        with_grad (bool): Whether to calculate the gradients.
-            Defaults to false.
-    """
-
     def __init__(
         self,
-        basis_set: Union[List[jax.Array], List[np.array], List[List[float]]],
+        basis_set: List[List[List[int]]],
         alpha: float = 1.0,
         with_grad: bool = False,
+        dtype: Any = jnp.float64,
     ) -> None:
-        if all([isinstance(basis, jax.Array) for basis in basis_set]):
-            self.basis_set = basis_set
-        else:
-            self.basis_set = [
-                jnp.array(basis, dtype=jnp.float32) for basis in basis_set
-            ]
-        self.alpha = alpha
+        """
+        Arguments:
+            basis_set (List[List[List[int]]]): Permutation invariant basis set.
+            alpha (float): Range parameter for Morse-like transformation.
+                Defaults to 1.0.
+            with_grad (bool): Whether to calculate gradients.
+                Defaults to False.
+            dtype (Any): Floating point precision (jnp.float64 or jnp.float32).
+                Defaults jnp.float64.
+        """
+        # 1. precision setup
+        if dtype == jnp.float64 and not jax.config.read("jax_enable_x64"):
+            jax.config.update("jax_enable_x64", True)
+
+        # 2. pre-calculate constants
+        _exps = jnp.array([m for b in basis_set for m in b], dtype=dtype)
+        _segs = jnp.array([i for i, b in enumerate(basis_set)
+                          for _ in b], dtype=jnp.int32)
+        _n_pips = len(basis_set)
+        _alpha = alpha
+
+        num_dist = _exps.shape[1]
+        num_atoms = int((1 + (1 + 8 * num_dist)**0.5) / 2)
+        _idx_i, _idx_j = jnp.triu_indices(num_atoms, k=1)
+
+        # 3. store attributes
+        self.flat_exponents = _exps
+        self.num_atoms = num_atoms
+        self.num_pips = _n_pips
+        self.dtype = dtype
         self.with_grad = with_grad
 
-        def _calc_p_from_xyz(xyz):
-            r = _calc_r_from_xyz(xyz)
-            m = _calc_m_from_r(r, alpha=self.alpha)
-            p = _calc_p_from_m(m, self.basis_set)
+        # 4. forward function: xyz -> p
+        def forward_fn(xyz):
+            r = jnp.linalg.norm(xyz[_idx_i] - xyz[_idx_j], axis=-1)
+            monomial_values = jnp.exp(jnp.dot(_exps, -r / _alpha))
+            p = jax.ops.segment_sum(monomial_values, _segs, _n_pips)
 
             return p
 
-        def _calc_p_from_xyz_with_grad(xyz):
-            r, J_r_xyz = _calc_r_from_xyz(xyz, with_grad=True)
-            m, J_m_r = _calc_m_from_r(r, alpha=self.alpha, with_grad=True)
-            p, J_p_m = _calc_p_from_m(m, self.basis_set, with_grad=True)
+        # 4. build kernel
+        def val_and_jac(xyz):
+            # prefer jacfwd since output dim always >> input dim
+            return forward_fn(xyz), jax.jacfwd(forward_fn)(xyz)
 
-            J_p_r = jnp.einsum("ij,jk->ik", J_p_m, J_m_r)
-            J_p_xyz = jnp.einsum("ij,jkl->ikl", J_p_r, J_r_xyz)
+        self._kernel = jax.jit(val_and_jac if with_grad else forward_fn)
 
-            return p, J_p_xyz
-
-        if self.with_grad:
-            self.kernel = jax.jit(_calc_p_from_xyz_with_grad)
-        else:
-            self.kernel = jax.jit(_calc_p_from_xyz)
-
-    @staticmethod
-    def from_json(
-        basis_json: str,
-        alpha: float = 1.0,
-        with_grad: bool = False,
-    ) -> "PIPDescriptor":
-        """Load PIP basis from json file.
-
-        Arguments:
-            basis_json (str): Permutation invariant basis json file.
-            alpha (float): Range parameter of Morse-like variables.
-                Defaults to 1.0.
-            with_grad (bool): Whether to calculate the gradients.
-                Defaults to false.
-        """
-        with open(basis_json) as f:
-            basis_set = json.load(f)
-
-        return PIPDescriptor(basis_set, alpha, with_grad)
+        # 5. batch kernel
+        self._batch_kernel = jax.jit(jax.vmap(self._kernel))
 
     def __call__(
         self,
         xyz: jax.Array,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
-        """Calculate permutation invariant polynomial.
+        """Calculate permutation invariant polynomial (PIP).
 
         Arguments:
-            xyz (jax.Array): Cartesian coordinates `xyz` with shape (n, 3),
-                where `n` is the number of atoms, in Angstroms.
+            xyz (jax.Array): Cartesian coordinates xyz with shape (n, 3),
+                where n is the number of atoms, in Angstroms.
 
         Returns:
             p (jax.Array): Permutation invariant polynomial.
-            J_p_xyz (jax.Array): Jacobian matrix of permutation invariant
-                polynomial `p` with respect to Cartesian coordinates `xyz`.
-                Only be calculated when gradients are required, i.e.
-                self.with_grad = True.
+            J_p_xyz (jax.Array): (Optional) Jacobian matrix dp/dxyz.
+                Only be calculated when gradients are required,
+                i.e. with_grad = True.
         """
-        return self.kernel(xyz)
+        return self._batch_kernel(xyz) if xyz.ndim == 3 else self._kernel(xyz)
 
-    def __repr__(self) -> str:
-        """Return a string representation."""
-        len_morse = len(self.basis_set[0][0])
-        num_atoms = int((1 + (1 + 8 * len_morse)**0.5) / 2)
-        len_pip = len(self.basis_set)
-        return ">>> PIPDescriptor INFO\n" \
-            f">>> Number of atoms: {num_atoms}\n" \
-            f">>> Length of distance and Morse-like vectors: {len_morse}\n" \
-            f">>> Length of permutation invariant polynomial: {len_pip}"
+    @classmethod
+    def from_file(
+        cls,
+        basis_file: str,
+        alpha: float = 1.0,
+        with_grad: bool = False,
+        dtype: Any = jnp.float64,
+    ) -> "PIPDescriptor":
+        """Initilize PIPDescriptor from basis set json.
+
+        Arguments:
+            basis_file (str): Path to basis set file (json or json.gz).
+            alpha (float): Range parameter for Morse-like transformation.
+                Defaults to 1.0.
+            with_grad (bool): Whether to calculate gradients.
+                Defaults to False.
+            dtype (Any): Precision, jnp.float64 or jnp.float32.
+                Defaults jnp.float64.
+
+        Returns:
+            descriptor (PIPDescriptor): PIP descriptor.
+        """
+        if basis_file.endswith(".json"):
+            with open(basis_file, "r") as f:
+                basis_set = json.load(f)
+        elif basis_file.endswith(".json.gz"):
+            with gzip.open(basis_file, "rt") as f:
+                basis_set = json.load(f)
+        else:
+            raise RuntimeError(
+                f"Invalid format of basis file: {basis_file}."
+            )
+
+        descriptor = cls(basis_set, alpha, with_grad, dtype)
+
+        return descriptor
 
 
 if __name__ == "__main__":

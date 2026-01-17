@@ -11,6 +11,5 @@ class AbstractDescriptor(ABC):
     def __call__(
         self,
         xyz: jax.Array,
-        with_grad: bool = False,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
         pass

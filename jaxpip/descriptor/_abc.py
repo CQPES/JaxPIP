@@ -5,12 +5,11 @@ import jax
 
 
 class AbstractDescriptor(ABC):
-    """Abstract class for polynomial based descriptors."""
+    """Abstract class for descriptors."""
 
     @abstractmethod
     def __call__(
         self,
         xyz: jax.Array,
-        with_grad: bool = False,
     ) -> Union[jax.Array, Tuple[jax.Array, jax.Array]]:
         pass

@@ -3,7 +3,7 @@ from setuptools import find_packages, setup
 setup(
     author="mizu-bai",
     description="Differentiable Permutation Invariant Polynomial (PIP) descriptor implemented in Jax.",
-    name="JaxPIP",
+    name="jaxpip",
     packages=find_packages(
         include=[
             "jaxpip",

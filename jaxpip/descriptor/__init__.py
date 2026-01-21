@@ -1,11 +1,11 @@
 # autopep8: off
 
-from ._pip import PIPDescriptor
-from ._frag_pip import FragmentPIPDescriptor
+from ._abc import AbstractDescriptor
+from ._polynomial_descriptor import PolynomialDescriptor
 
 __all__ = [
-    "PIPDescriptor",
-    "FragmentPIPDescriptor",
+    "AbstractDescriptor",
+    "PolynomialDescriptor",
 ]
 
 # autopep8: on

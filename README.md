@@ -1,7 +1,6 @@
 # JaxPIP
 
-Differentiable Permutation Invariant Polynomial (PIP) descriptor implemented in
-Jax.
+Tensorization over Factorization: Revisiting Permutation Invariant Polynomial with JAX
 
 Author: mizu-bai
 

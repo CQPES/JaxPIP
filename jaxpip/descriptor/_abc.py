@@ -5,7 +5,7 @@ import jax
 
 
 class AbstractDescriptor(ABC):
-    """Abstract class for polynomial based descriptors."""
+    """Abstract class for descriptors."""
 
     @abstractmethod
     def __call__(

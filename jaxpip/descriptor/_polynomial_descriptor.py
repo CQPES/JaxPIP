@@ -1,13 +1,14 @@
+import gzip
 import json
 from typing import Any, List, Tuple, Union
 
-import gzip
 import jax
 from jax import numpy as jnp
+
 from jaxpip.descriptor import AbstractDescriptor
 
 
-class PIPDescriptor(AbstractDescriptor):
+class PolynomialDescriptor(AbstractDescriptor):
     def __init__(
         self,
         basis_set: List[List[List[int]]],
@@ -42,6 +43,7 @@ class PIPDescriptor(AbstractDescriptor):
 
         # 3. store attributes
         self.flat_exponents = _exps
+        self.num_flat_exponents = len(_exps)
         self.num_atoms = num_atoms
         self.num_pips = _n_pips
         self.dtype = dtype
@@ -90,8 +92,8 @@ class PIPDescriptor(AbstractDescriptor):
         alpha: float = 1.0,
         with_grad: bool = False,
         dtype: Any = jnp.float64,
-    ) -> "PIPDescriptor":
-        """Initilize PIPDescriptor from basis set json.
+    ) -> "PolynomialDescriptor":
+        """Initilize PolynomialDescriptor from basis set json.
 
         Arguments:
             basis_file (str): Path to basis set file (json or json.gz).
@@ -103,7 +105,7 @@ class PIPDescriptor(AbstractDescriptor):
                 Defaults jnp.float64.
 
         Returns:
-            descriptor (PIPDescriptor): PIP descriptor.
+            descriptor (PolynomialDescriptor): PIP descriptor.
         """
         if basis_file.endswith(".json"):
             with open(basis_file, "r") as f:
@@ -119,6 +121,17 @@ class PIPDescriptor(AbstractDescriptor):
         descriptor = cls(basis_set, alpha, with_grad, dtype)
 
         return descriptor
+
+    def __repr__(self):
+        return (
+            "PolynomialDescriptor(\n"
+            f"  num_flat_exponents={self.num_flat_exponents},\n"
+            f"  num_atoms={self.num_atoms},\n"
+            f"  num_pips={self.num_pips},\n"
+            f"  dtype={self.dtype},\n"
+            f"  with_grad={self.with_grad}\n"
+            ")"
+        )
 
 
 if __name__ == "__main__":
@@ -140,13 +153,13 @@ if __name__ == "__main__":
         [[2, 0, 0]],             # r(HH)^2
     ]
 
-    a2b_pip = PIPDescriptor(
+    pip_a2b_2 = PolynomialDescriptor(
         basis_set=basis_set,
         alpha=1.0,
         with_grad=True,
     )
 
-    p, J_p_xyz = a2b_pip(water_xyz)
+    p, J_p_xyz = pip_a2b_2(water_xyz)
 
     print(f"p(xyz) = {p}")
     print(f"Jp(xyz) = {J_p_xyz}")

@@ -7,6 +7,14 @@ from jax import numpy as jnp
 from jaxpip.descriptor import PolynomialDescriptor
 from jaxpip.model import AbstractModel
 
+from jaxpip.model._nn import TanhLayer, ISRULayer
+
+
+_ACT_MAP = {
+    "tanh": TanhLayer,
+    "isru": ISRULayer,
+}
+
 
 class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
     """Polynomial Neural Network
@@ -39,6 +47,7 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
         descriptor: PolynomialDescriptor,
         hidden_layers: List[int],
         key: Any,
+        activation: Union[str, eqx.Module] = "tanh",
     ) -> None:
         self.descriptor = descriptor
 
@@ -71,7 +80,13 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
             )
 
             if i < len(layer_sizes) - 2:
-                layers.append(eqx.nn.Lambda(jax.nn.tanh))
+                # activation
+                if isinstance(activation, eqx.Module):
+                    layers.append(activation)
+                else:
+                    _act_cls = _ACT_MAP[activation.lower()]
+                    act_layer = _act_cls(dtype=_dtype)
+                    layers.append(act_layer)
 
         self.layers = tuple(layers)
 
@@ -247,6 +262,7 @@ if __name__ == "__main__":
         descriptor=pip_a2b_2,
         hidden_layers=[16, 32],
         key=key,
+        # activation="isru",
     )
 
     print(model)

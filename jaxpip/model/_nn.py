@@ -14,7 +14,8 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
     Attributes:
         descriptor (PolynomialDescriptor): Descriptor that transforms Cartesian
             coordinates into polynomials.
-        mlp (eqx.nn.MLP): Neural network with polynomial as input.
+        layers (Tuple[eqx.Module, ...]): Neural network with polynomial as
+            input.
         dtype (jnp.dtype): Numerical precision inherited from descriptor.
         p_min (jax.Array): Minimum values of polynomials for neural network
             input normalization.
@@ -24,8 +25,7 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
         V_max (jax.Array): Maximum energy value for ouptut rescaling.
     """
     descriptor: PolynomialDescriptor = eqx.field(static=True)
-    mlp: eqx.nn.MLP
-
+    layers: Tuple[eqx.Module, ...]
     dtype: jnp.dtype = eqx.field(static=True)
 
     # scale factors
@@ -43,7 +43,6 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
         self.descriptor = descriptor
 
         # inherit descriptor's dtype
-        self.dtype = descriptor.dtype
         _dtype = descriptor.dtype
 
         # drop the first element, always 1.0
@@ -55,17 +54,50 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
         self.V_min = jnp.array(0.0, dtype=_dtype)
         self.V_max = jnp.array(1.0, dtype=_dtype)
 
-        self.mlp = eqx.nn.MLP(
-            in_size=num_inputs,
-            out_size=1,
-            width_size=hidden_layers[0],
-            depth=len(hidden_layers),
-            activation=jax.nn.tanh,
-            dtype=_dtype,
-            key=key,
+        # nn
+        layer_sizes = [num_inputs] + hidden_layers + [1]
+
+        layers = []
+        keys = jax.random.split(key, len(layer_sizes) - 1)
+
+        for i in range(len(layer_sizes) - 1):
+            layers.append(
+                eqx.nn.Linear(
+                    in_features=layer_sizes[i],
+                    out_features=layer_sizes[i + 1],
+                    dtype=_dtype,
+                    key=keys[i],
+                )
+            )
+
+            if i < len(layer_sizes) - 2:
+                layers.append(eqx.nn.Lambda(jax.nn.tanh))
+
+        self.layers = tuple(layers)
+
+        # store dtype
+        self.dtype = _dtype
+
+    def _update_scaling_factor(
+        self,
+        p_use: jax.Array,
+        V_all: jax.Array,
+    ) -> "PolynomialNeuralNetwork":
+        p_min = jnp.min(p_use, axis=0)
+        p_max = jnp.max(p_use, axis=0)
+
+        V_min = jnp.min(V_all)
+        V_max = jnp.max(V_all)
+
+        new_model = eqx.tree_at(
+            where=(lambda m: (m.p_min, m.p_max, m.V_min, m.V_max)),
+            pytree=self,
+            replace=(p_min, p_max, V_min, V_max),
         )
 
-    def make_scale(
+        return new_model
+
+    def make_scale_xyz_V(
         self,
         xyz_all: jax.Array,
         V_all: jax.Array,
@@ -85,23 +117,31 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
         # calculate p of all input xyz
         p_all = self.descriptor(xyz_all)
 
-        # drop 1.0
+        # drop first element
         p_use = p_all[:, 1:]
 
-        # min-max
-        p_min = jnp.min(p_use, axis=0)
-        p_max = jnp.max(p_use, axis=0)
-
-        V_min = jnp.min(V_all)
-        V_max = jnp.max(V_all)
-
-        new_model = eqx.tree_at(
-            where=(lambda m: (m.p_min, m.p_max, m.V_min, m.V_max)),
-            pytree=self,
-            replace=(p_min, p_max, V_min, V_max),
-        )
+        new_model = self._update_scaling_factor(p_use, V_all)
 
         return new_model
+
+    def make_scale_p_V(
+        self,
+        p_all: jax.Array,
+        V_all: jax.Array,
+    ) -> "PolynomialNeuralNetwork":
+        """Updates scaling factors of polynomials and energy.
+
+        Arguments:
+            p_all (jax.Array): Reference polynomials with shape (N_p,), first
+                element 1.0 kept.
+            V_all (jax.Array): Reference potential energies with shape
+                (N_samples,).
+
+        Returns:
+            new_model (PolynomialNeuralNetwork): A new model instance with
+                updated p_min, p_max, V_min, and V_max.
+        """
+        return self._update_scaling_factor(p_all[:, 1:], V_all)
 
     @eqx.filter_jit
     def get_energy(
@@ -126,7 +166,12 @@ class PolynomialNeuralNetwork(eqx.Module, AbstractModel):
         X = 2.0 * (p - self.p_min) / (self.p_max - self.p_min + eps) - 1.0
 
         # 3. predict y in [-1.0, 1.0]
-        y = self.mlp(X)[0]
+        x = X
+
+        for layer in self.layers:
+            x = layer(x)
+
+        y = x[0]
 
         # 4. y -> V (in eV)
         V = 0.5 * (y + 1.0) * (self.V_max - self.V_min) + self.V_min
@@ -200,7 +245,7 @@ if __name__ == "__main__":
 
     model = PolynomialNeuralNetwork(
         descriptor=pip_a2b_2,
-        hidden_layers=[20, 20],
+        hidden_layers=[16, 32],
         key=key,
     )
 
@@ -210,7 +255,7 @@ if __name__ == "__main__":
     p_example = pip_a2b_2(water_xyz)[jnp.newaxis, :]  # (1, num_pips)
     V_example = jnp.array([0.0])
 
-    model = model.make_scale(p_example, V_example)
+    model = model.make_scale_p_V(p_example, V_example)
 
     print(model)
 

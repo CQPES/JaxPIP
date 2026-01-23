@@ -35,7 +35,7 @@ class PolynomialDescriptor(AbstractDescriptor):
         _segs = jnp.array([i for i, b in enumerate(basis_set)
                           for _ in b], dtype=jnp.int32)
         _n_pips = len(basis_set)
-        _alpha = alpha
+        _alpha = float(alpha)
 
         num_dist = _exps.shape[1]
         num_atoms = int((1 + (1 + 8 * num_dist)**0.5) / 2)

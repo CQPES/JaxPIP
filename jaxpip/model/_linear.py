@@ -87,3 +87,37 @@ class PolynomialLinearModel(eqx.Module, AbstractModel):
             return self.get_energy_and_forces(xyz)
 
         return self.get_energy(xyz)
+
+
+if __name__ == "__main__":
+    water_xyz = jnp.array([
+        [+0.00000000, +0.78383672, +0.44340501],  # H
+        [+0.00000000, -0.78383672, +0.44340501],  # H
+        [+0.00000000, +0.00000000, -0.11085125],  # O
+    ])
+
+    print(f"HHO xyz = {water_xyz}")
+
+    basis_set = [
+        [[0, 0, 0]],
+        [[0, 0, 1], [0, 1, 0]],  # r(HO) + r(HO)
+        [[1, 0, 0]],             # r(HH)
+        [[0, 1, 1]],             # r(HO) * r(HO)
+        [[1, 0, 1], [1, 1, 0]],  # r(HH) * r(HO) + r(HH) * r(HO)
+        [[0, 0, 2], [0, 2, 0]],  # r(HO)^2 + r(HO)^2
+        [[2, 0, 0]],             # r(HH)^2
+    ]
+
+    pip_a2b_2 = PolynomialDescriptor(
+        basis_set=basis_set,
+        alpha=1.0,
+        with_grad=False,
+        dtype=jnp.float64,
+    )
+
+    model = PolynomialLinearModel(
+        descriptor=pip_a2b_2,
+    )
+
+    print(model)
+    print(model.coeffs)

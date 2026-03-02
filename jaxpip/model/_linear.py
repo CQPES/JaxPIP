@@ -1,4 +1,4 @@
-from typing import Tuple, Union
+from typing import Tuple, Union, Optional
 
 import equinox as eqx
 import jax
@@ -24,6 +24,7 @@ class PolynomialLinearModel(eqx.Module, AbstractModel):
     def __init__(
         self,
         descriptor: PolynomialDescriptor,
+        coeffs: Optional[jax.Array] = None,
     ) -> None:
         self.descriptor = descriptor
 
@@ -31,7 +32,18 @@ class PolynomialLinearModel(eqx.Module, AbstractModel):
         self.dtype = descriptor.dtype
         _dtype = descriptor.dtype
 
-        self.coeffs = jnp.zeros(shape=(descriptor.num_pips,), dtype=_dtype)
+        if coeffs is not None:
+            self.coeffs = jnp.asarray(coeffs, dtype=_dtype)
+        else:
+            self.coeffs = jnp.zeros(shape=(descriptor.num_pips,), dtype=_dtype)
+
+    def update_coeffs(
+        self,
+        new_coeffs: jax.Array,
+    ) -> "PolynomialLinearModel":
+        _new_coeffs = jnp.asarray(new_coeffs, dtype=self.dtype)
+
+        return eqx.tree_at(lambda model: model.coeffs, self, _new_coeffs)
 
     @eqx.filter_jit
     def get_energy(

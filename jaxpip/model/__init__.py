@@ -1,8 +1,8 @@
 # autopep8: off
 
 from ._abc import AbstractModel
-from ._linear import PolynomialLinearModel
 from ._nn import PolynomialNeuralNetwork
+from .linear import PolynomialLinearModel
 
 __all__ = [
     "AbstractModel",

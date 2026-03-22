@@ -34,6 +34,8 @@ class PolynomialDescriptor:
                 stacklevel=2,
             )
 
+        self.dtype = dtype
+
         # 2. pre-calculate constants
         self.alpha = alpha
         self.basis_matrix = jnp.array(
@@ -90,6 +92,10 @@ class PolynomialDescriptor:
 
     def __repr__(self):
         return f"PolynomialDescriptor(info={self.basis_info})"
+
+    @property
+    def feature_dim(self):
+        return self.basis_info.num_poly
 
     @classmethod
     def from_file(

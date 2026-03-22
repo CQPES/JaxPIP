@@ -3,12 +3,9 @@ from typing import Any, List, Tuple, Union
 import equinox as eqx
 import jax
 from jax import numpy as jnp
-
 from jaxpip.descriptor import PolynomialDescriptor
 from jaxpip.model import AbstractModel
-
-from jaxpip.model._nn import TanhLayer, ISRULayer
-
+from jaxpip.model._nn import ISRULayer, TanhLayer
 
 _ACT_MAP = {
     "tanh": TanhLayer,

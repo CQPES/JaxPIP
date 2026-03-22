@@ -1,6 +1,6 @@
+import equinox as eqx
 import jax
 from jax import numpy as jnp
-import equinox as eqx
 
 
 def isru(

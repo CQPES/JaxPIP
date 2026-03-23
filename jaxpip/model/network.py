@@ -1,8 +1,9 @@
-from typing import Any, List, Tuple, Union, Callable
+from typing import Callable, List, Tuple, Union
 
 import equinox as eqx
 import jax
 from jax import numpy as jnp
+
 from jaxpip.descriptor import PolynomialDescriptor
 from jaxpip.model.activation import ISRU
 

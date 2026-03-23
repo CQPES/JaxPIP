@@ -3,6 +3,7 @@ from typing import Optional, Tuple
 import equinox as eqx
 import jax
 from jax import numpy as jnp
+
 from jaxpip.descriptor import PolynomialDescriptor
 
 

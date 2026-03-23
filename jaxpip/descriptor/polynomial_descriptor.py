@@ -86,6 +86,8 @@ class PolynomialDescriptor:
             flat_monos,
             segment_ids=self.poly_seg_ids,
             num_segments=self.basis_info.num_poly,
+            indices_are_sorted=True,
+            unique_indices=False,
         )
 
         return p

@@ -63,7 +63,6 @@ class PolynomialLinearModel(eqx.Module):
 
         return V
 
-    @eqx.filter_jit
     def get_energy_and_forces(
         self,
         xyz: jax.Array,

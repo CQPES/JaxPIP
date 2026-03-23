@@ -1,13 +1,9 @@
-# autopep8: off
-
-from ._abc import AbstractModel
-from ._nn import PolynomialNeuralNetwork
+from .activation import ISRU
 from .linear import PolynomialLinearModel
+from .network import PolynomialNeuralNetwork
 
 __all__ = [
-    "AbstractModel",
+    "ISRU",
     "PolynomialLinearModel",
     "PolynomialNeuralNetwork",
 ]
-
-# autopep8: on

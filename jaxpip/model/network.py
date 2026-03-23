@@ -13,7 +13,7 @@ class FeatureScaler(eqx.Module):
     p_max: jax.Array
     V_min: jax.Array
     V_max: jax.Array
-    esp: float = 1.0e-12  # fp64
+    eps: float = 1.0e-12  # fp64
 
     def __init__(
         self,
@@ -31,14 +31,14 @@ class FeatureScaler(eqx.Module):
         self,
         p: jax.Array,
     ) -> jax.Array:
-        return 2.0 * (p - self.p_min) / (self.p_max - self.p_min + self.esp) - 1.0
+        return 2.0 * (p - self.p_min) / (self.p_max - self.p_min + self.eps) - 1.0
 
     def unscale_V(
         self,
         V_scaled: jax.Array,
     ) -> jax.Array:
         return (
-            0.5 * V_scaled * (self.V_max - self.V_min + self.esp)
+            0.5 * V_scaled * (self.V_max - self.V_min + self.eps)
             + (self.V_max + self.V_min) / 2.0
         )
 

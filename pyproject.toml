@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "jaxpip"
+version = "1.0.0"
+description = "Permutation Invariant Polynomial (PIP) in JAX."
+authors = [{ name = "mizu-bai", email = "shiragawa4519@outlook.com" }]
+license = { text = "BSD-2-Clause" }
+readme = "README.md"
+requires-python = ">=3.11"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Topic :: Scientific/Engineering :: Chemistry",
+]
+
+
+dependencies = []
+
+[project.scripts]
+jaxpip = "jaxpip.cli.entries:main"
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["jaxpip*"]

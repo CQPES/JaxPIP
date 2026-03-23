@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "jaxpip"
 version = "1.0.0"
-description = "Permutation Invariant Polynomial (PIP) in JAX."
+description = "Permutation Invariant Polynomials (PIPs) in JAX."
 authors = [{ name = "mizu-bai", email = "shiragawa4519@outlook.com" }]
 license = { text = "BSD-2-Clause" }
 readme = "README.md"

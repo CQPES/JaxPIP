@@ -1,12 +1,11 @@
-import gzip
-import json
 import warnings
 from typing import Any
 
 import jax
 from jax import numpy as jnp
 
-from jaxpip.types import BasisInfo, InvariantBasis
+from jaxpip.basis import flatten_basis, get_basis_info, load_basis
+from jaxpip.types import InvariantBasis
 
 
 class PolynomialDescriptor:
@@ -36,28 +35,16 @@ class PolynomialDescriptor:
             )
 
         self.dtype = dtype
-
-        # 2. pre-calculate constants
         self.alpha = alpha
-        self.basis_matrix = jnp.array(
-            [m for b in basis_set for m in b],
-            dtype=dtype,
-        )
-        self.poly_seg_ids = jnp.array(
-            [i for i, b in enumerate(basis_set) for _ in b],
-            dtype=jnp.int32,
-        )
+        self.basis_info = get_basis_info(basis_set)
 
-        num_dist = self.basis_matrix.shape[1]
-        num_atoms = int((1 + (1 + 8 * num_dist) ** 0.5) / 2)
-        self._idx_i, self._idx_j = jnp.triu_indices(num_atoms, k=1)
+        exponents, segments = flatten_basis(basis_set)
+        self.basis_matrix = jnp.array(exponents, dtype=dtype)
+        self.poly_seg_ids = jnp.array(segments, dtype=jnp.int32)
 
-        # 3. store attributes
-        self.basis_info = BasisInfo(
-            num_atoms=num_atoms,
-            num_flat_mono=len(self.basis_matrix),
-            num_poly=len(basis_set),
-            max_degree=int(jnp.max(jnp.sum(self.basis_matrix, axis=1))),
+        self._idx_i, self._idx_j = jnp.triu_indices(
+            self.basis_info.num_atoms,
+            k=1,
         )
 
     def __call__(
@@ -119,14 +106,10 @@ class PolynomialDescriptor:
         Returns:
             descriptor (PolynomialDescriptor): PIP descriptor.
         """
-        if basis_file.endswith(".json"):
-            with open(basis_file, "r") as f:
-                basis_set = json.load(f)
-        elif basis_file.endswith(".json.gz"):
-            with gzip.open(basis_file, "rt") as f:
-                basis_set = json.load(f)
-        else:
-            raise ValueError(f"Invalid format of basis file: {basis_file}.")
+        try:
+            basis_set = load_basis(basis_file)
+        except Exception as e:
+            raise RuntimeError(f"Failed to load basis file: {e}")
 
         descriptor = cls(basis_set, alpha, dtype)
 

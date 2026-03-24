@@ -42,6 +42,11 @@ class PolynomialDescriptor:
         self.basis_matrix = jnp.array(exponents, dtype=dtype)
         self.poly_seg_ids = jnp.array(segments, dtype=jnp.int32)
 
+        # for segment_sum optimization
+        self._poly_seg_ids_are_sorted = bool(
+            jnp.all(jnp.diff(self.poly_seg_ids) >= 0),
+        )
+
         self._idx_i, self._idx_j = jnp.triu_indices(
             self.basis_info.num_atoms,
             k=1,
@@ -74,7 +79,7 @@ class PolynomialDescriptor:
             flat_monos,
             segment_ids=self.poly_seg_ids,
             num_segments=self.basis_info.num_poly,
-            indices_are_sorted=True,
+            indices_are_sorted=self._poly_seg_ids_are_sorted,
             unique_indices=False,
         )
 

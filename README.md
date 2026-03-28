@@ -16,6 +16,10 @@ If JaxPIP helps your work, please cite correctly.
 
 ## Usage
 
+### Available Basis Sets
+
+Refer to the [`JaxPIP-Basis-Library`](https://github.com/CQPES/JaxPIP-Basis-Library) for ready-to-use basis sets (including converted MSA PIPs and collected FIs).
+
 ### Command Line Interface (CLI)
 
 Convert an MSA `.BAS` file to JaxPIP JSON format:

@@ -113,22 +113,22 @@ model = ...
 
 
 # define whatever you want to export
-@jax.jit
+@eqx.filter_jit
 def export_fn_energy(xyz):
     return model.get_energy(xyz)
 
 
-@jax.jit
+@eqx.filter_jit
 def export_fn_energy_and_forces(xyz):
     return model.get_energy_and_forces(xyz)
 
 
-@jax.jit
+@eqx.filter_jit
 def export_fn_batch_energy(xyz):
     return jax.vmap(model.get_energy)(xyz)
 
 
-@jax.jit
+@eqx.filter_jit
 def export_fn_batch_energy_and_forces(xyz):
     return jax.vmap(model.get_energy_and_forces)(xyz)
 

@@ -11,7 +11,11 @@ from jaxpip.model import PolynomialLinearModel, PolynomialNeuralNetwork
 
 
 class JaxPIPCalculator(Calculator):
-    implemented_properties = ["energy", "forces"]
+    implemented_properties = [
+        "energy",
+        "forces",
+        "hessian",
+    ]
 
     def __init__(
         self,
@@ -40,8 +44,15 @@ class JaxPIPCalculator(Calculator):
 
             return energy, forces
 
+        @eqx.filter_jit
+        def _hessian_kernel(
+            xyz: jax.Array,
+        ) -> jax.Array:
+            return jax.hessian(_energy_kernel)(xyz)
+
         self._energy_kernel = _energy_kernel
         self._energy_and_forces_kernel = _energy_and_forces_kernel
+        self._hessian_kernel = _hessian_kernel
 
     def calculate(
         self,
@@ -63,7 +74,19 @@ class JaxPIPCalculator(Calculator):
             dtype=self.model.dtype,
         )
 
-        if "forces" in properties:
+        if "hessian" in properties:
+            energy, forces = self._energy_and_forces_kernel(xyz)
+            hessian = self._hessian_kernel(xyz)
+
+            self.results["energy"] = np.asarray(energy).item()
+            self.results["forces"] = np.asarray(forces)
+
+            num_atoms = len(atoms)
+
+            self.results["hessian"] = np.asarray(
+                hessian.reshape(3 * num_atoms, 3 * num_atoms)
+            )
+        elif "forces" in properties:
             energy, forces = self._energy_and_forces_kernel(xyz)
 
             self.results["energy"] = np.asarray(energy).item()

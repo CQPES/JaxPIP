@@ -149,6 +149,22 @@ class PolynomialLinearModel(eqx.Module):
 
         return V, f
 
+    def get_hessian(
+        self,
+        xyz: jax.Array,
+    ) -> jax.Array:
+        """Get hessian matrix of given xyz coordinates.
+
+        Arguments:
+            xyz (jax.Array): Cartesian coordinates with shape (N_atom, 3).
+
+        Returns:
+            hess (jax.Array): Hessian matrix with shape (3 * N_atom, 3 * N_atom).
+        """
+        return jax.hessian(self.get_energy)(xyz).reshape(
+            (3 * xyz.shape[0],) * 2
+        )
+
 
 if __name__ == "__main__":
     water_xyz = jnp.array(

@@ -34,25 +34,38 @@ class JaxPIPCalculator(Calculator):
             return model.get_energy(xyz / to_angstrom) * to_eV
 
         @eqx.filter_jit
-        def _energy_and_forces_kernel(
+        def _energy_forces_kernel(
             xyz: jax.Array,
         ) -> Tuple[jax.Array, jax.Array]:
             energy, forces = model.get_energy_and_forces(xyz / to_angstrom)
 
             energy = energy * to_eV
-            forces = forces * to_eV / to_angstrom
+            forces = forces * (to_eV / to_angstrom)
 
             return energy, forces
 
         @eqx.filter_jit
-        def _hessian_kernel(
+        def _energy_forces_hessian_kernel(
             xyz: jax.Array,
-        ) -> jax.Array:
-            return jax.hessian(_energy_kernel)(xyz)
+        ) -> Tuple[jax.Array, jax.Array, jax.Array]:
+            energy, forces = model.get_energy_and_forces(xyz / to_angstrom)
+            hessian = model.get_hessian(xyz / to_angstrom)
+
+            energy = energy * to_eV
+            forces = forces * (to_eV / to_angstrom)
+            hessian = hessian * (to_eV / to_angstrom**2)
+
+            return energy, forces, hessian
 
         self._energy_kernel = _energy_kernel
-        self._energy_and_forces_kernel = _energy_and_forces_kernel
-        self._hessian_kernel = _hessian_kernel
+        self._energy_forces_kernel = _energy_forces_kernel
+        self._energy_forces_hessian_kernel = _energy_forces_hessian_kernel
+
+    def get_hessian(
+        self,
+        atoms: Optional[Atoms] = None,
+    ) -> np.ndarray:
+        return self.get_property("hessian", atoms)
 
     def calculate(
         self,
@@ -75,22 +88,18 @@ class JaxPIPCalculator(Calculator):
         )
 
         if "hessian" in properties:
-            energy, forces = self._energy_and_forces_kernel(xyz)
-            hessian = self._hessian_kernel(xyz)
+            energy, forces, hessian = self._energy_forces_hessian_kernel(xyz)
 
             self.results["energy"] = np.asarray(energy).item()
             self.results["forces"] = np.asarray(forces)
+            self.results["hessian"] = np.asarray(hessian)
 
-            num_atoms = len(atoms)
-
-            self.results["hessian"] = np.asarray(
-                hessian.reshape(3 * num_atoms, 3 * num_atoms)
-            )
         elif "forces" in properties:
-            energy, forces = self._energy_and_forces_kernel(xyz)
+            energy, forces = self._energy_forces_kernel(xyz)
 
             self.results["energy"] = np.asarray(energy).item()
             self.results["forces"] = np.asarray(forces)
+
         elif "energy" in properties:
             energy = self._energy_kernel(xyz)
 

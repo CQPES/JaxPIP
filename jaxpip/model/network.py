@@ -35,7 +35,9 @@ class FeatureScaler(eqx.Module):
         self,
         p: jax.Array,
     ) -> jax.Array:
-        return 2.0 * (p - self.p_min) / (self.p_max - self.p_min + self.eps) - 1.0
+        return (
+            2.0 * (p - self.p_min) / (self.p_max - self.p_min + self.eps) - 1.0
+        )
 
     def unscale_V(
         self,
@@ -76,7 +78,9 @@ class PolynomialNeuralNetwork(eqx.Module):
     ) -> None:
         self.descriptor = descriptor
         self._hidden_layers = hidden_layers
-        self._activation_name = activation if isinstance(activation, str) else "custom"
+        self._activation_name = (
+            activation if isinstance(activation, str) else "custom"
+        )
 
         # inherit descriptor's dtype
         _dtype = descriptor.dtype
@@ -299,6 +303,22 @@ class PolynomialNeuralNetwork(eqx.Module):
         f = -(g - jnp.mean(g, axis=0))
 
         return V, f
+
+    def get_hessian(
+        self,
+        xyz: jax.Array,
+    ) -> jax.Array:
+        """Get hessian matrix of given xyz coordinates.
+
+        Arguments:
+            xyz (jax.Array): Cartesian coordinates with shape (N_atom, 3).
+
+        Returns:
+            hess (jax.Array): Hessian matrix with shape (3 * N_atom, 3 * N_atom).
+        """
+        return jax.hessian(self.get_energy)(xyz).reshape(
+            (3 * xyz.shape[0],) * 2
+        )
 
 
 if __name__ == "__main__":

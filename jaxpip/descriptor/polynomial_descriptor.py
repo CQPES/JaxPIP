@@ -5,9 +5,8 @@ import jax
 from jax import numpy as jnp
 
 from jaxpip.basis import flatten_basis, get_basis_info, load_basis
+from jaxpip.descriptor.kernel import kernel_morse, kernel_reciprocal
 from jaxpip.types import InvariantBasis
-
-from .kernel import kernel_morse, kernel_reciprocal
 
 KernelFn = Callable[[jax.Array], jax.Array]
 
@@ -54,7 +53,7 @@ class PolynomialDescriptor:
         self.basis_info = get_basis_info(basis_set)
 
         exponents, segments = flatten_basis(basis_set)
-        self.basis_matrix = jnp.array(exponents, dtype=dtype)
+        self.basis_matrix = jnp.array(exponents, dtype=jnp.uint8)  # 8-bit quant
         self.poly_seg_ids = jnp.array(segments, dtype=jnp.int32)
 
         # for segment_sum optimization
@@ -69,12 +68,12 @@ class PolynomialDescriptor:
 
         _kernel_map: Dict[str, KernelFn] = {
             "morse": lambda r: kernel_morse(
-                basis_matrix=self.basis_matrix,
+                basis_matrix=self.basis_matrix.astype(self.dtype),  # cast
                 r=r,
                 alpha=alpha,
             ),
             "reciprocal": lambda r: kernel_reciprocal(
-                basis_matrix=self.basis_matrix,
+                basis_matrix=self.basis_matrix.astype(self.dtype),  # cast
                 r=r,
                 ln_alpha=jnp.log(alpha),
             ),

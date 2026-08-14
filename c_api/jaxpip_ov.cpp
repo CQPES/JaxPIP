@@ -36,7 +36,7 @@ void init_jaxpip_model(const char* model_path)
     }
 }
 
-void eval_jaxpip_model(double* coords, int* num_atoms, double* energy, double* forces)
+void eval_jaxpip_model(const double* coords, const int* num_atoms, double* energy, double* forces)
 {
     if (!ov_infer_request) {
         std::cerr << "Error: Model not initialized! Call init_jaxpip_model first." << std::endl;
@@ -47,7 +47,7 @@ void eval_jaxpip_model(double* coords, int* num_atoms, double* energy, double* f
     size_t tensor_size = n_atoms * 3;
 
     ov::Shape input_shape = { n_atoms, 3 };
-    ov::Tensor input_tensor(ov::element::f64, input_shape, coords);
+    ov::Tensor input_tensor(ov::element::f64, input_shape, const_cast<double*>(coords));
 
     ov_infer_request->set_input_tensor(0, input_tensor);
     ov_infer_request->infer();

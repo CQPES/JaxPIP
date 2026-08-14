@@ -43,7 +43,7 @@ void init_jaxpip_model(const char* model_path)
     }
 }
 
-void eval_jaxpip_model(double* coords, int* num_atoms, double* energy, double* forces)
+void eval_jaxpip_model(const double* coords, const int* num_atoms, double* energy, double* forces)
 {
     if (!ort_session) {
         std::cerr << "Error: Model not initialized! Call init_jaxpip_model first." << std::endl;
@@ -56,7 +56,7 @@ void eval_jaxpip_model(double* coords, int* num_atoms, double* energy, double* f
     std::vector<int64_t> input_shape = { n_atoms, 3 };
 
     Ort::Value input_tensor = Ort::Value::CreateTensor<double>(
-        *memory_info, coords, tensor_size, input_shape.data(), input_shape.size());
+        *memory_info, const_cast<double*>(coords), tensor_size, input_shape.data(), input_shape.size());
 
     const char* input_names[] = { input_name.c_str() };
     const char* output_names[] = { output_energy_name.c_str(), output_forces_name.c_str() };

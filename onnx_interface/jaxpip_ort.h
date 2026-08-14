@@ -24,7 +24,7 @@ void init_onnx_model(const char* model_path);
  * @param forces    Flattened 1D array to store the output analytical forces.
  *                  Size will be 3 * num_atoms.
  */
-void onnx_model_wrapper(double* coords, int* num_atoms, double* energy, double* forces);
+void eval_onnx_model(double* coords, int* num_atoms, double* energy, double* forces);
 
 /**
  * @brief Clean up and release ONNX Runtime resources.

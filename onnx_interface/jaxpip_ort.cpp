@@ -22,23 +22,27 @@ void init_onnx_model(const char* model_path)
         return;
     }
 
-    ort_env = new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "JaxPIP_ORT");
-    Ort::SessionOptions session_options;
-    session_options.SetIntraOpNumThreads(1);
-    session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
+    try {
+        ort_env = new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "JaxPIP_ORT");
+        Ort::SessionOptions session_options;
+        session_options.SetIntraOpNumThreads(1);
+        session_options.SetGraphOptimizationLevel(GraphOptimizationLevel::ORT_ENABLE_ALL);
 
-    ort_session = new Ort::Session(*ort_env, model_path, session_options);
-    memory_info = new Ort::MemoryInfo(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
+        ort_session = new Ort::Session(*ort_env, model_path, session_options);
+        memory_info = new Ort::MemoryInfo(Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault));
 
-    Ort::AllocatorWithDefaultOptions allocator;
-    input_name = ort_session->GetInputNameAllocated(0, allocator).get();
-    output_energy_name = ort_session->GetOutputNameAllocated(0, allocator).get();
-    output_forces_name = ort_session->GetOutputNameAllocated(1, allocator).get();
+        Ort::AllocatorWithDefaultOptions allocator;
+        input_name = ort_session->GetInputNameAllocated(0, allocator).get();
+        output_energy_name = ort_session->GetOutputNameAllocated(0, allocator).get();
+        output_forces_name = ort_session->GetOutputNameAllocated(1, allocator).get();
 
-    std::cout << "JaxPIP ONNX model loaded successfully." << std::endl;
+        std::cout << "JaxPIP ONNX model loaded successfully (backend: ONNX Runtime)." << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "ONNX Runtime initialization error: " << e.what() << std::endl;
+    }
 }
 
-void onnx_model_wrapper(double* coords, int* num_atoms, double* energy, double* forces)
+void eval_onnx_model(double* coords, int* num_atoms, double* energy, double* forces)
 {
     if (!ort_session) {
         std::cerr << "Error: Model not initialized! Call init_onnx_model first." << std::endl;

@@ -1,7 +1,8 @@
-#include "jaxpip_ort.h"
+#include "jaxpip.h"
 
 #include <onnxruntime/onnxruntime_cxx_api.h>
 
+#include <cstring>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -16,7 +17,7 @@ static std::string output_forces_name;
 
 extern "C" {
 
-void init_onnx_model(const char* model_path)
+void init_jaxpip_model(const char* model_path)
 {
     if (ort_session != nullptr) {
         return;
@@ -42,10 +43,10 @@ void init_onnx_model(const char* model_path)
     }
 }
 
-void eval_onnx_model(double* coords, int* num_atoms, double* energy, double* forces)
+void eval_jaxpip_model(double* coords, int* num_atoms, double* energy, double* forces)
 {
     if (!ort_session) {
-        std::cerr << "Error: Model not initialized! Call init_onnx_model first." << std::endl;
+        std::cerr << "Error: Model not initialized! Call init_jaxpip_model first." << std::endl;
         return;
     }
 
@@ -69,11 +70,10 @@ void eval_onnx_model(double* coords, int* num_atoms, double* energy, double* for
     *energy = out_energy[0];
 
     double* out_forces = output_tensors[1].GetTensorMutableData<double>();
-    for (size_t i = 0; i < tensor_size; ++i)
-        forces[i] = out_forces[i];
+    std::memcpy(forces, out_forces, tensor_size * sizeof(double));
 }
 
-void finalize_onnx_model()
+void finalize_jaxpip_model()
 {
     if (ort_session) {
         delete ort_session;

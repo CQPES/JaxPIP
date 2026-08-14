@@ -1,4 +1,4 @@
-#include "jaxpip_ov.h"
+#include "jaxpip.h"
 
 #include <openvino/openvino.hpp>
 
@@ -12,7 +12,7 @@ static ov::InferRequest* ov_infer_request = nullptr;
 
 extern "C" {
 
-void init_ov_model(const char* model_path)
+void init_jaxpip_model(const char* model_path)
 {
     if (ov_compiled_model != nullptr) {
         return;
@@ -20,7 +20,6 @@ void init_ov_model(const char* model_path)
 
     try {
         ov_core = new ov::Core();
-
         std::shared_ptr<ov::Model> model = ov_core->read_model(model_path);
 
         ov::AnyMap config = {
@@ -29,7 +28,6 @@ void init_ov_model(const char* model_path)
         };
 
         ov_compiled_model = new ov::CompiledModel(ov_core->compile_model(model, "CPU", config));
-
         ov_infer_request = new ov::InferRequest(ov_compiled_model->create_infer_request());
 
         std::cout << "JaxPIP ONNX model loaded successfully (backend: OpenVINO)." << std::endl;
@@ -38,10 +36,10 @@ void init_ov_model(const char* model_path)
     }
 }
 
-void eval_ov_model(double* coords, int* num_atoms, double* energy, double* forces)
+void eval_jaxpip_model(double* coords, int* num_atoms, double* energy, double* forces)
 {
     if (!ov_infer_request) {
-        std::cerr << "Error: Model not initialized! Call init_ov_model first." << std::endl;
+        std::cerr << "Error: Model not initialized! Call init_jaxpip_model first." << std::endl;
         return;
     }
 
@@ -49,7 +47,6 @@ void eval_ov_model(double* coords, int* num_atoms, double* energy, double* force
     size_t tensor_size = n_atoms * 3;
 
     ov::Shape input_shape = { n_atoms, 3 };
-
     ov::Tensor input_tensor(ov::element::f64, input_shape, coords);
 
     ov_infer_request->set_input_tensor(0, input_tensor);
@@ -61,11 +58,10 @@ void eval_ov_model(double* coords, int* num_atoms, double* energy, double* force
 
     ov::Tensor forces_tensor = ov_infer_request->get_output_tensor(1);
     const double* out_forces = forces_tensor.data<double>();
-
     std::memcpy(forces, out_forces, tensor_size * sizeof(double));
 }
 
-void finalize_ov_model()
+void finalize_jaxpip_model()
 {
     if (ov_infer_request) {
         delete ov_infer_request;

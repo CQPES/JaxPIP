@@ -32,7 +32,7 @@ def main() -> None:
 
     bas2json_parser = subparsers.add_parser(
         "bas2json",
-        help="Conver MSA .BAS to JaxPIP .json",
+        help="Convert MSA .BAS to JaxPIP .json",
     )
 
     bas2json_parser.add_argument(

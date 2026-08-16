@@ -94,6 +94,58 @@ batch_energy = jax.vmap(model.get_energy)(batch_xyz)
 batch_energy, batch_forces = jax.vmap(model.get_energy_and_forces)(batch_xyz)
 ```
 
+### Model Serialization
+
+Both linear and neural-network models can be saved after fitting. `save()`
+returns the absolute checkpoint path. A model checkpoint stores its
+hyperparameters in the first line, followed by the serialized Equinox leaves.
+The basis set is referenced by the loading path and is not embedded in the model
+file, so keep the basis JSON and model checkpoint together.
+
+```python
+# Linear model
+model.save("model.eqx")
+
+model = PolynomialLinearModel.from_file(
+    basis_file="basis.json.gz",
+    model_file="model.eqx",
+)
+
+# Neural network
+network.save("network.eqx")
+
+network = PolynomialNeuralNetwork.from_file(
+    basis_file="basis.json.gz",
+    model_file="network.eqx",
+)
+```
+
+Checkpoint loading reconstructs the descriptor from the saved `alpha`,
+`decay_kernel`, and `dtype` values, then restores the fitted parameters.
+
+### ASE Interface
+
+`JaxPIPCalculator` provides energy, forces, and Hessian calculations for ASE
+`Atoms` objects.
+
+```python
+from ase import Atoms
+
+from jaxpip.interface import JaxPIPCalculator
+
+
+atoms = Atoms(...)
+atoms.calc = JaxPIPCalculator(model)
+
+energy = atoms.get_potential_energy()
+forces = atoms.get_forces()
+hessian = atoms.calc.get_hessian()
+```
+
+By default, the model is assumed to use Angstrom and eV. For another unit
+system, set `to_angstrom` to the model length unit in Angstrom and `to_eV` to
+the model energy unit in eV.
+
 ### Export to ONNX
 
 JaxPIP models can be exported to ONNX for use in C++, Fortran, or other production environments.
@@ -167,6 +219,71 @@ $ onnxsim model.onnx model.sim.onnx --enable-onnxruntime-optimization
 ```
 
 Also, the onnx model can be visualized in [Netron](https://netron.app).
+
+### C/C++/Fortran API
+
+The C API has two interchangeable backend implementations:
+
+| Backend | Source | Runtime dependency |
+| --- | --- | --- |
+| ONNX Runtime | [`c_api/jaxpip_ort.cpp`](c_api/jaxpip_ort.cpp) | ONNX Runtime |
+| OpenVINO | [`c_api/jaxpip_ov.cpp`](c_api/jaxpip_ov.cpp) | OpenVINO |
+
+Both sources expose the same symbols and use [`c_api/jaxpip.h`](c_api/jaxpip.h)
+as the C/C++ header. Link exactly one backend implementation into the final
+executable.
+
+For C/C++, include `c_api/jaxpip.h`, then call the runtime in this order:
+
+```c
+#include "c_api/jaxpip.h"
+
+int main(void) {
+    int n_atoms = 3;
+    double xyz[9] = {/* x1, y1, z1, x2, y2, z2, x3, y3, z3 */};
+    double energy;
+    double forces[9];
+
+    init_jaxpip_model("model.onnx");
+
+    eval_jaxpip_model(xyz, &n_atoms, &energy, forces);
+
+    finalize_jaxpip_model();
+    return 0;
+}
+```
+
+- Call `init_jaxpip_model` once before the MD loop.
+- Call `eval_jaxpip_model` repeatedly inside the MD loop.
+- Call `finalize_jaxpip_model` at the end to release backend resources.
+- Coordinates and forces are flattened, row-major `double` arrays of length
+  `3 * n_atoms`.
+- Coordinates are in Angstroms.
+- The ONNX model must have one input of shape `(N_atoms, 3)`.
+- The ONNX model must have two outputs: scalar energy followed by forces of
+  shape `(N_atoms, 3)`.
+- Export `export_fn_energy_and_forces`; do not use an energy-only or batched
+  model with this API.
+- Double precision is required.
+- Standard JaxPIP models produce energy in eV and forces in eV/Angstrom.
+
+Example compiler invocations, with include and library paths adjusted for the
+local runtime installation:
+
+```bash
+# ONNX Runtime
+c++ -O3 -std=c++17 -I<onnxruntime-include> program.cpp c_api/jaxpip_ort.cpp \
+    -L<onnxruntime-lib> -lonnxruntime
+
+# OpenVINO
+c++ -O3 -std=c++17 -I<openvino-include> program.cpp c_api/jaxpip_ov.cpp \
+    -L<openvino-lib> -lopenvinoc
+```
+
+Fortran code can use the interface module in
+[`c_api/jaxpip_mod.f90`](c_api/jaxpip_mod.f90) and link to either C++ backend.
+The model path passed through the `ISO_C_BINDING` interface must be a
+`c_char` array terminated by `c_null_char`.
 
 ## License
 

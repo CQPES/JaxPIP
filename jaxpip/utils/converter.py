@@ -13,7 +13,7 @@ def bas2json(
         json_file += ".gz"
 
     basis_set: InvariantBasis = []
-    degree = -1
+    orbit_id = -1
 
     with open(bas_file, "r") as f:
         for line in f:
@@ -24,12 +24,13 @@ def bas2json(
 
             label_part, basis_part = line.split(":")
 
-            current_degree = int(label_part.split()[0])
+            # first number is the polynomial (orbit) id, ascending per orbit
+            current_id = int(label_part.split()[0])
             exponents = [int(b) for b in basis_part.split()]
 
-            if current_degree != degree:
+            if current_id != orbit_id:
                 basis_set.append([exponents])
-                degree = current_degree
+                orbit_id = current_id
             else:
                 basis_set[-1].append(exponents)
 

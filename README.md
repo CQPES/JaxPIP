@@ -12,7 +12,7 @@ Author: mizu-bai
 
 If JaxPIP helps your work, please cite correctly.
 
-> Li, J.; Song, K.; Guo, H.; Li, J. Efficient Tensorized Evaluation of Permutation Invariant Polynomials for Representing Potential Energy Surfaces. _J. Chem. Theory Comput._ **2026**. https://doi.org/10.1021/acs.jctc.6c01659.
+> Li, J.; Song, K.; Guo, H.; Li, J. Efficient Tensorized Evaluation of Permutation Invariant Polynomials for Representing Potential Energy Surfaces. _J. Chem. Theory Comput_. **2026**, _22_ (19), 9940–9953. https://doi.org/10.1021/acs.jctc.6c01659.
 
 ## Usage
 
@@ -296,4 +296,4 @@ BSD 2-Clause License
 - (3) Jiang, B.; Guo, H. Permutation Invariant Polynomial Neural Network Approach to Fitting Potential Energy Surfaces. _J. Chem. Phys._ **2013**, _139_ (5). https://doi.org/10.1063/1.4817187.
 - (4) Li, J.; Jiang, B.; Guo, H. Permutation Invariant Polynomial Neural Network Approach to Fitting Potential Energy Surfaces. II. Four-Atom Systems. _J. Chem. Phys._ **2013**, _139_ (20). https://doi.org/10.1063/1.4832697.
 - (5) Drehwald, M. S.; Jamali, A.; Vargas-Hernández, R. A. MOLPIPx: An End-to-End Differentiable Package for Permutationally Invariant Polynomials in Python and Rust. _J. Chem. Phys._ **2025**, _162_ (8). https://doi.org/10.1063/5.0250837.
-- (6) Li, J.; Song, K.; Guo, H.; Li, J. Efficient Tensorized Evaluation of Permutation Invariant Polynomials for Representing Potential Energy Surfaces. _J. Chem. Theory Comput._ **2026**. https://doi.org/10.1021/acs.jctc.6c01659.
+- (6) Li, J.; Song, K.; Guo, H.; Li, J. Efficient Tensorized Evaluation of Permutation Invariant Polynomials for Representing Potential Energy Surfaces. _J. Chem. Theory Comput_. **2026**, _22_ (19), 9940–9953. https://doi.org/10.1021/acs.jctc.6c01659.
